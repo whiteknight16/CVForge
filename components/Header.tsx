@@ -20,20 +20,7 @@ const Header = () => {
                     </span>
                 </Link>
                 
-                <nav className="hidden md:flex items-center space-x-8">
-                    <Link 
-                        href="#features" 
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
-                    >
-                        Features
-                    </Link>
-                    <Link 
-                        href="#how-it-works" 
-                        className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200"
-                    >
-                        How It Works
-                    </Link>
-                </nav>
+                
 
                 <div className="flex items-center gap-3">
                     <ModeToggle />
