@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { FileText, FileUp, Cloud, HardDrive, Loader2, X } from 'lucide-react'
+import { FileText, FileUp, Cloud, HardDrive, Loader2, X, Sparkles } from 'lucide-react'
 import { GoogleIcon } from '@/components/ui/google-icon'
 import Header from '@/components/Header'
 
@@ -27,16 +27,17 @@ const CreateResumePage = () => {
 
   // Handle file selection
   const handleFileSelect = (file: File) => {
-    // Validate file type
+    // Validate file type - only PDF and DOCX
     const validTypes = [
       'application/pdf',
-      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
     ]
     
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a PDF, DOC, DOCX, or TXT file')
+    const fileName = file.name.toLowerCase()
+    const isValidType = validTypes.includes(file.type) || fileName.endsWith('.pdf') || fileName.endsWith('.docx')
+    
+    if (!isValidType) {
+      alert('Please upload a PDF or DOCX file only.')
       return
     }
 
@@ -74,22 +75,53 @@ const CreateResumePage = () => {
 
   // Extract data from resume
   const extractDataFromResume = async (file: File): Promise<any> => {
-    // TODO: Implement actual resume parsing logic
-    // This could use libraries like pdf-parse, mammoth, etc.
-    
-    return new Promise((resolve) => {
-      // Simulate extraction process
-      setTimeout(() => {
-        // Mock extracted data
-        const extractedData = {
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          phone: '+1 234 567 8900',
-          // Add more fields as needed
-        }
-        resolve(extractedData)
-      }, 2000) // Simulate 2 second extraction
-    })
+    try {
+      // Step 1: Upload file and extract text
+      const formData = new FormData()
+      formData.append('file', file)
+
+      console.log('Uploading file:', file.name, 'Type:', file.type, 'Size:', file.size)
+
+      const uploadResponse = await fetch('/api/resume/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      console.log('Upload response status:', uploadResponse.status)
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json()
+        console.error('Upload error details:', error)
+        throw new Error(error.details || error.error || 'Failed to upload file')
+      }
+
+      const uploadResult = await uploadResponse.json()
+      console.log('Extracted text length:', uploadResult.text?.length)
+
+      // Step 2: Parse text using GPT-4o-mini
+      const parseResponse = await fetch('/api/resume/parse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: uploadResult.text }),
+      })
+
+      console.log('Parse response status:', parseResponse.status)
+
+      if (!parseResponse.ok) {
+        const error = await parseResponse.json()
+        console.error('Parse error details:', error)
+        throw new Error(error.details || error.error || 'Failed to parse resume')
+      }
+
+      const { data } = await parseResponse.json()
+      console.log('Parsed data:', data)
+      return data
+    } catch (error) {
+      console.error('Extract data error:', error)
+      throw error
+    }
   }
 
   // Handle resume upload and extraction
@@ -105,8 +137,14 @@ const CreateResumePage = () => {
       // Generate UUID for the resume
       const randomUUID = generateUUID()
       
-      // TODO: Save extracted data to database/state management
-      console.log('Extracted data:', extractedData)
+      // Store extracted data in localStorage BEFORE navigation
+      const importKey = `resume_import_${randomUUID}`
+      console.log('Storing extracted data in localStorage with key:', importKey)
+      console.log('Extracted data to store:', extractedData)
+      localStorage.setItem(importKey, JSON.stringify(extractedData))
+      
+      // Small delay to ensure localStorage is written
+      await new Promise(resolve => setTimeout(resolve, 100))
       
       // Route to resume page with the UUID
       router.push(`/resume/${randomUUID}`)
@@ -253,7 +291,7 @@ const CreateResumePage = () => {
                   type="file"
                   id="file-upload"
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.txt"
+                  accept=".pdf,.docx"
                   onChange={handleFileInputChange}
                   disabled={isExtracting}
                 />

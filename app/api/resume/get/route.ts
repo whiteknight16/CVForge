@@ -93,12 +93,18 @@ export async function POST(request: Request) {
       })
     }
 
-    // Transform order object to array format
+    // Handle order - it's now stored as an array of section names
     let sectionOrder: string[] = []
-    if (resumeData.order && typeof resumeData.order === 'object') {
-      // Extract keys from order object and filter out skipped sections
-      const orderObj = resumeData.order as Record<string, boolean>
-      sectionOrder = Object.keys(orderObj).filter(key => !orderObj[key])
+    if (resumeData.order) {
+      if (Array.isArray(resumeData.order)) {
+        // New format: array of section names
+        sectionOrder = resumeData.order as string[]
+      } else if (typeof resumeData.order === 'object') {
+        // Legacy format: object with {sectionName: skipped}
+        // Convert to array format for backward compatibility
+        const orderObj = resumeData.order as Record<string, boolean>
+        sectionOrder = Object.keys(orderObj).filter(key => !orderObj[key])
+      }
     }
 
     // If no order, use default
@@ -119,16 +125,9 @@ export async function POST(request: Request) {
     sectionOrder = sectionOrder.filter(s => s !== 'personal_details')
     sectionOrder.unshift('personal_details')
 
-    // Get skipped sections from order object
+    // Skipped sections are no longer stored separately - they're just not in the order array
+    // For backward compatibility, return empty array
     const skippedSections: string[] = []
-    if (resumeData.order && typeof resumeData.order === 'object') {
-      const orderObj = resumeData.order as Record<string, boolean>
-      Object.keys(orderObj).forEach(key => {
-        if (orderObj[key] === true) {
-          skippedSections.push(key)
-        }
-      })
-    }
 
     return NextResponse.json({
       success: true,

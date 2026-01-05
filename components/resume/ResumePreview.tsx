@@ -417,8 +417,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
   const finalOrder = ensurePersonalDetailsFirst(order)
 
   return (
-    <div className="rounded-lg shadow-lg p-8 min-h-[800px]" style={{ fontFamily, color: textColor }}>
-      <div className={isTwoColumn ? 'max-w-5xl mx-auto' : 'max-w-2xl mx-auto'}>
+    <div className="rounded-lg shadow-lg p-4 min-h-[800px] text-xs" style={{ fontFamily, color: textColor }}>
+      <div className={`${isTwoColumn ? 'max-w-5xl mx-auto' : 'max-w-2xl mx-auto'} scale-75 origin-top`}>
         {isTwoColumn && (
           <div className="flex border-r-2 pr-4" style={{ borderColor: textColor, opacity: 0.3 }}>
             <div className="flex-1"></div>

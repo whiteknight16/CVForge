@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import ResumeSidebar from '@/components/resume/ResumeSidebar'
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Save, Menu, X } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
+import { toast } from 'sonner'
 import type { personal_details, employment_history, education, projects, resume_section_order } from '@/db/schema'
 
 type ResumeData = {
@@ -54,13 +55,173 @@ const ResumePage = () => {
     ]
   })
 
+  // Ref to track if we've loaded imported data to prevent re-fetching
+  const hasLoadedImportedData = useRef(false)
+  
+  // Also use sessionStorage to persist across re-renders
+  const getImportedDataFlag = () => {
+    return sessionStorage.getItem(`resume_imported_${resumeId}`) === 'true'
+  }
+  
+  const setImportedDataFlag = () => {
+    sessionStorage.setItem(`resume_imported_${resumeId}`, 'true')
+    hasLoadedImportedData.current = true
+  }
+
   // Fetch resume data on mount
   useEffect(() => {
+    let isMounted = true
+    
     const fetchResumeData = async () => {
       if (!resumeId) return
+      
+      // If we've already loaded imported data, restore from sessionStorage and skip fetch
+      if (hasLoadedImportedData.current || getImportedDataFlag()) {
+        console.log('Already loaded imported data (from previous render), restoring from sessionStorage')
+        
+        // Try to restore data from sessionStorage backup
+        const backupData = sessionStorage.getItem(`resume_data_${resumeId}`)
+        console.log('Backup data found:', backupData ? 'YES' : 'NO')
+        
+        if (backupData) {
+          try {
+            const parsed = JSON.parse(backupData)
+            console.log('Restoring parsed data:', parsed)
+            
+            const defaultOrder = [
+              'personal_details',
+              'professional_summary',
+              'skills',
+              'employment_history',
+              'education',
+              'projects',
+              'languages',
+              'links',
+            ]
+            
+            // Set state even if component might remount
+            setResumeData({
+              personal_details: parsed.personal_details || null,
+              professional_summary: parsed.professional_summary || null,
+              employment_history: parsed.employment_history || null,
+              education: parsed.education || null,
+              projects: parsed.projects || null,
+              skills: parsed.skills || null,
+              languages: parsed.languages || null,
+              links: parsed.links || null,
+              order: defaultOrder,
+            })
+            
+            setResumeName(parsed.personal_details?.name ? `${parsed.personal_details.name}'s Resume` : 'My Resume')
+            setSkippedSections(new Set())
+            console.log('✅ Restored data from sessionStorage backup')
+          } catch (e) {
+            console.error('Failed to restore from sessionStorage:', e)
+          }
+        } else {
+          console.warn('⚠️ No backup data found in sessionStorage')
+        }
+        
+        setIsLoading(false)
+        return
+      }
 
       try {
         setIsLoading(true)
+        
+        // Check for imported resume data in localStorage
+        // Add a small delay to ensure localStorage is available after navigation
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        const importKey = `resume_import_${resumeId}`
+        const importedData = localStorage.getItem(importKey)
+        
+        console.log('Checking for imported data with key:', importKey)
+        console.log('Found imported data:', importedData ? 'YES' : 'NO')
+        
+        if (importedData) {
+          // Load imported data
+          console.log('Loading imported resume data from localStorage')
+          try {
+            const parsed = JSON.parse(importedData)
+            console.log('Parsed imported data:', parsed)
+            
+            // CRITICAL: Set flag FIRST before anything else to prevent any other code from running
+            setImportedDataFlag()
+            console.log('✅ Set imported data flag in sessionStorage')
+            
+            // ALSO store the data in sessionStorage as backup (in case state gets reset)
+            sessionStorage.setItem(`resume_data_${resumeId}`, JSON.stringify(parsed))
+            console.log('✅ Stored imported data in sessionStorage as backup')
+            
+            // Clear localStorage IMMEDIATELY to prevent re-reading
+            localStorage.removeItem(importKey)
+            console.log('Cleared localStorage key:', importKey)
+            
+            // Set resume data with proper structure including order
+            const defaultOrder = [
+              'personal_details',
+              'professional_summary',
+              'skills',
+              'employment_history',
+              'education',
+              'projects',
+              'languages',
+              'links',
+            ]
+            
+            // Set all state at once to prevent race conditions
+            if (isMounted) {
+              setResumeData({
+                personal_details: parsed.personal_details || null,
+                professional_summary: parsed.professional_summary || null,
+                employment_history: parsed.employment_history || null,
+                education: parsed.education || null,
+                projects: parsed.projects || null,
+                skills: parsed.skills || null,
+                languages: parsed.languages || null,
+                links: parsed.links || null,
+                order: defaultOrder, // Include order so sectionOrder can be computed
+              })
+              
+              setResumeName(parsed.personal_details?.name ? `${parsed.personal_details.name}'s Resume` : 'My Resume')
+              setSkippedSections(new Set())
+              setIsLoading(false)
+              
+              // IMPORTANT: Return early to prevent database fetch
+              console.log('✅ Successfully loaded imported data, skipping database fetch')
+            }
+            return
+          } catch (parseError) {
+            console.error('Failed to parse imported data:', parseError)
+            localStorage.removeItem(importKey)
+            // Continue to database fetch if parsing fails
+          }
+        }
+        
+        // CRITICAL: Double-check before database fetch
+        // If we've loaded imported data OR sessionStorage says we did, NEVER fetch from DB
+        if (hasLoadedImportedData.current || getImportedDataFlag()) {
+          console.log('BLOCKED: Already loaded imported data, skipping database fetch completely')
+          if (isMounted) {
+            setIsLoading(false)
+          }
+          return
+        }
+        
+        // Final check: Make sure localStorage is still empty (in case of race condition)
+        const finalCheck = localStorage.getItem(`resume_import_${resumeId}`)
+        if (finalCheck) {
+          console.log('BLOCKED: Found imported data on final check, skipping database fetch')
+          if (isMounted) {
+            setIsLoading(false)
+          }
+          return
+        }
+        
+        // Only proceed to database fetch if ALL checks pass
+        console.log('✅ All checks passed, fetching from database (no imported data found)')
+        
         const response = await fetch('/api/resume/get', {
           method: 'POST',
           headers: {
@@ -137,6 +298,15 @@ const ResumePage = () => {
         }
 
         // Success - load resume data
+        // CRITICAL: Check one more time if we've loaded imported data (race condition protection)
+        if (hasLoadedImportedData.current || getImportedDataFlag()) {
+          console.log('BLOCKED: Database response received but imported data was already loaded, ignoring DB data')
+          if (isMounted) {
+            setIsLoading(false)
+          }
+          return
+        }
+        
         if (data.success && data.resume) {
           const resume = data.resume
           
@@ -153,21 +323,29 @@ const ResumePage = () => {
             skills: resume.skills || null,
             languages: resume.languages || null,
             links: resume.links || null,
-            order: resume.sectionOrder || [
-              'personal_details',
-              'skills',
-              'employment_history',
-              'education',
-              'projects',
-              'languages',
-              'links',
-              'professional_summary'
-            ],
+            // Use sectionOrder from API (it's now an array, not an object)
+            // Ensure personal_details is always first
+            order: (() => {
+              const apiOrder = resume.sectionOrder || [
+                'personal_details',
+                'skills',
+                'employment_history',
+                'education',
+                'projects',
+                'languages',
+                'links',
+                'professional_summary'
+              ]
+              const filtered = apiOrder.filter(s => s !== 'personal_details')
+              return ['personal_details', ...filtered]
+            })(),
           })
 
-          // Set skipped sections
+          // Set skipped sections (for backward compatibility)
           if (resume.skippedSections && Array.isArray(resume.skippedSections)) {
             setSkippedSections(new Set(resume.skippedSections))
+          } else {
+            setSkippedSections(new Set())
           }
         } else if (data.isNew || !data.success) {
           // New resume or failed to load - start with empty data
@@ -210,7 +388,56 @@ const ResumePage = () => {
     }
 
     fetchResumeData()
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false
+    }
   }, [resumeId])
+
+  // Restore from sessionStorage on every render if flag is set (prevents data loss on re-renders)
+  useEffect(() => {
+    if (getImportedDataFlag()) {
+      const backupData = sessionStorage.getItem(`resume_data_${resumeId}`)
+      if (backupData) {
+        try {
+          const parsed = JSON.parse(backupData)
+          // Only restore if current data is empty/default
+          if (!resumeData.personal_details && parsed.personal_details) {
+            console.log('🔄 Restoring data from sessionStorage on render')
+            const defaultOrder = [
+              'personal_details',
+              'professional_summary',
+              'skills',
+              'employment_history',
+              'education',
+              'projects',
+              'languages',
+              'links',
+            ]
+            
+            setResumeData({
+              personal_details: parsed.personal_details || null,
+              professional_summary: parsed.professional_summary || null,
+              employment_history: parsed.employment_history || null,
+              education: parsed.education || null,
+              projects: parsed.projects || null,
+              skills: parsed.skills || null,
+              languages: parsed.languages || null,
+              links: parsed.links || null,
+              order: defaultOrder,
+            })
+            
+            if (parsed.personal_details?.name) {
+              setResumeName(`${parsed.personal_details.name}'s Resume`)
+            }
+          }
+        } catch (e) {
+          console.error('Failed to restore on render:', e)
+        }
+      }
+    }
+  }, [resumeId, resumeData.personal_details])
 
   // Default order if not set
   const defaultOrder: resume_section_order = [
@@ -252,7 +479,7 @@ const ResumePage = () => {
   const handleSkipSection = (sectionId: string) => {
     // Don't allow skipping mandatory sections
     if (sectionId === 'personal_details') {
-      alert('Personal Details is mandatory and cannot be skipped.')
+      toast.error('Personal Details is mandatory and cannot be skipped.')
       return
     }
 
@@ -443,6 +670,22 @@ const ResumePage = () => {
 
   // Handle navigation with validation
   const handleNavigation = async (targetSection: string) => {
+    // CRITICAL: Always check personal_details first - name and email are mandatory
+    const personalDetails = resumeData.personal_details as personal_details
+    if (!personalDetails?.name || !personalDetails?.email) {
+      toast.error('Please fill in your Name and Email in Personal Details before proceeding')
+      return
+    }
+
+    // If trying to navigate away from personal_details, validate it first
+    if (activeSection === 'personal_details') {
+      const isValid = validateSection('personal_details', personalDetails)
+      if (!isValid) {
+        toast.error('Please fill in your Name and Email in Personal Details before proceeding')
+        return
+      }
+    }
+
     const currentData = resumeData[activeSection as keyof ResumeData]
     const isValid = validateSection(activeSection, currentData)
 
@@ -473,7 +716,16 @@ const ResumePage = () => {
   // Handle save
   const handleSave = async () => {
     if (!user?.user_id) {
-      alert('Please log in to save your resume.')
+      toast.error('Please log in to save your resume.')
+      return
+    }
+
+    // CRITICAL: Validate personal details (name and email are mandatory)
+    const personalDetails = resumeData.personal_details as personal_details
+    if (!personalDetails?.name || !personalDetails?.email) {
+      toast.error('Please fill in your Name and Email in Personal Details before saving')
+      // Navigate to personal_details section
+      setActiveSection('personal_details')
       return
     }
 
@@ -666,7 +918,7 @@ const ResumePage = () => {
           </main>
 
           {/* Preview Section */}
-          <aside className="hidden lg:block w-96 border-l border-border bg-muted/20 overflow-y-auto p-6">
+          <aside className="hidden lg:block w-[600px] border-l border-border bg-muted/20 overflow-y-auto p-4">
             <ResumePreview data={resumeData} order={sectionOrder} />
           </aside>
         </div>
@@ -723,3 +975,4 @@ const ResumePage = () => {
 }
 
 export default ResumePage
+

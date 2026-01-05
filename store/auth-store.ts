@@ -15,7 +15,7 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   setUser: (user: User | null) => void
-  logout: () => void
+  logout: () => Promise<void>
   initializeAuth: () => Promise<void>
 }
 
@@ -29,10 +29,19 @@ export const useAuthStore = create<AuthState>()(
         set({ user, isAuthenticated: !!user })
       },
       
-      logout: () => {
-        set({ user: null, isAuthenticated: false })
+      logout: async () => {
         // Clear cookie by calling logout API
-        fetch('/api/auth/logout', { method: 'POST' })
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' })
+        } catch (error) {
+          console.error('Logout API error:', error)
+        }
+        
+        // Clear Zustand state
+        set({ user: null, isAuthenticated: false })
+        
+        // Clear localStorage manually
+        localStorage.removeItem('auth-storage')
       },
       
       initializeAuth: async () => {

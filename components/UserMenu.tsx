@@ -21,7 +21,9 @@ const UserMenu = () => {
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
-      logout()
+      await logout()
+      // Wait a tiny bit to ensure state is cleared
+      await new Promise(resolve => setTimeout(resolve, 100))
       window.location.href = '/'
     } catch (error) {
       console.error('Logout error:', error)

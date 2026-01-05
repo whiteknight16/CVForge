@@ -79,17 +79,9 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!Array.isArray(skippedSections)) {
-      skippedSections = []
-    }
-
-    // Build order object: {sectionName: skipped (boolean)}
-    const orderObject: Record<string, boolean> = {}
-    sectionOrder.forEach((section: string) => {
-      orderObject[section] = skippedSections.includes(section)
-    })
-    // Ensure personal_details is always false (can't be skipped)
-    orderObject['personal_details'] = false
+    // Ensure personal_details is always first in the order array
+    const filteredOrder = sectionOrder.filter(s => s !== 'personal_details')
+    const finalOrder = ['personal_details', ...filteredOrder]
 
     const resumeDataToSave = {
       user_id: session.user_id,
@@ -102,7 +94,7 @@ export async function POST(request: Request) {
       skills: resumeData.skills || [], // skills is required, default to empty array
       languages: resumeData.languages || null,
       links: resumeData.links || null,
-      order: orderObject,
+      order: finalOrder, // Store as array of section names in order
       updated_at: new Date().toISOString(),
     }
 

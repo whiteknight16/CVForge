@@ -95,7 +95,7 @@ Generate a professional summary that:
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -203,6 +203,122 @@ Generate 3-4 sentences describing the project, its purpose, key features, and te
   } catch (error: any) {
     console.error('OpenAI API error:', error)
     throw new Error(error.message || 'Failed to generate description. Please try again.')
+  }
+}
+
+/**
+ * Parse resume text and extract structured information using OpenAI API
+ * @param text - Raw text extracted from resume (PDF or DOCX)
+ * @returns Structured resume data object
+ */
+export async function parseResumeText(text: string): Promise<any> {
+  const apiKey = process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+
+  if (!apiKey) {
+    throw new Error('OpenAI API key not found. Please add OPENAI_API_KEY to your .env file.')
+  }
+
+  const prompt = `You are a resume parser. Extract structured information from the following resume text and return it as a JSON object. Be thorough and extract all available information.
+
+Expected JSON structure:
+{
+  "personal_details": {
+    "name": "Full Name",
+    "email": "email@example.com",
+    "phone": "phone number",
+    "address": "full address",
+    "city": "city",
+    "state": "state",
+    "zip": "zip code",
+    "country": "country"
+  },
+  "professional_summary": "Professional summary or objective statement",
+  "employment_history": [
+    {
+      "company_name": "Company Name",
+      "position": "Job Title",
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM or Present",
+      "description": "Job responsibilities and achievements",
+      "type": "full-time/part-time/freelance/internship/volunteer"
+    }
+  ],
+  "education": [
+    {
+      "school_name": "School Name",
+      "degree": "Degree",
+      "field_of_study": "Field of Study",
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM",
+      "description": "Additional details"
+    }
+  ],
+  "projects": [
+    {
+      "project_name": "Project Name",
+      "description": "Project description",
+      "technologies": ["tech1", "tech2"],
+      "links": {"github": "url", "demo": "url"}
+    }
+  ],
+  "skills": ["skill1", "skill2", "skill3"],
+  "languages": [{"language": "English", "proficiency": "Native/Fluent/Intermediate/Basic"}],
+  "links": {"linkedin": "url", "github": "url", "portfolio": "url", "website": "url"}
+}
+
+Important:
+- Only include fields that are present in the resume
+- For missing fields, use null or empty array
+- Dates should be in YYYY-MM format
+- Be accurate and don't make up information
+- Extract ALL work experience, education, projects, and skills
+
+Resume text:
+${text}
+
+Return ONLY the JSON object, no markdown formatting or explanations.`
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a precise resume parser. Return only valid JSON, no markdown or explanations.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        response_format: { type: 'json_object' },
+      }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error?.message || 'Failed to parse resume')
+    }
+
+    const data = await response.json()
+    const parsedData = data.choices[0]?.message?.content
+
+    if (!parsedData) {
+      throw new Error('No response from OpenAI')
+    }
+
+    // Parse the JSON response
+    return JSON.parse(parsedData)
+  } catch (error: any) {
+    console.error('OpenAI API error:', error)
+    throw new Error(error.message || 'Failed to parse resume. Please try again.')
   }
 }
 

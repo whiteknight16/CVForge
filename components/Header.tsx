@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/auth-store'
 import UserMenu from './UserMenu'
 
 const Header = () => {
-    const { isAuthenticated, initializeAuth } = useAuthStore()
+    const { isAuthenticated, user, initializeAuth } = useAuthStore()
 
     useEffect(() => {
         // Initialize auth on mount
@@ -31,7 +31,7 @@ const Header = () => {
 
                 <div className="flex items-center gap-3 ml-auto">
                 <ModeToggle />
-                    {isAuthenticated ? (
+                    {isAuthenticated && user ? (
                         <UserMenu />
                     ) : (
                         <Button asChild size="default" className="font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
