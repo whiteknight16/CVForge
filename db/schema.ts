@@ -62,18 +62,19 @@ export type resume_section_order = (
 )[]
 
 export const resume = pgTable('resume', {
-    resume_id: uuid('resume_id').primaryKey().notNull(), // UUID comes from URL, no default
     user_id: uuid('user_id').references(() => users.user_id).notNull(),
     resume_name: text('resume_name').notNull(),
-    skills:jsonb('skills').notNull(),
-    professional_summary:text('professional_summary'),
-    languages:jsonb('languages'),
-    links:jsonb('links'),
+    skills: jsonb('skills').notNull(),
+    professional_summary: text('professional_summary'),
+    languages: jsonb('languages'),
+    links: jsonb('links'),
     personal_details: jsonb('personal_details'),
     employment_history: jsonb('employment_history'),
     education: jsonb('education'),
     projects: jsonb('projects'),
-    order: jsonb('order'), // Stores the order of sections: ['personal_details', 'professional_summary', 'employment_history', 'education', 'projects', 'languages', 'links']
-    created_at: timestamp('created_at').defaultNow().notNull(),
-    updated_at: timestamp('updated_at').defaultNow().notNull(),
+    created_at: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
+    updated_at: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+    order: jsonb('order'),
+    resume_id: uuid('resume_id').primaryKey().notNull(),
+    customization: jsonb('customization'),
 })

@@ -150,7 +150,7 @@ export async function GET(request: Request) {
 
     // Redirect to dashboard
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/resume-creation-options`
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard`
     )
   } catch (error: any) {
     console.error('Google OAuth callback error:', error)

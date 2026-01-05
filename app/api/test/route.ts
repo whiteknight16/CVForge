@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/db/schema";
+import { users, resume } from "@/db/schema";
 
 export async function GET() {
   try {
@@ -16,8 +16,15 @@ export async function GET() {
       );
     }
 
-    const result = await db.select().from(users);
-    return NextResponse.json({ success: true, data: result, count: result.length });
+    const usersResult = await db.select().from(users);
+    const resumeResult = await db.select().from(resume).limit(1);
+    
+    return NextResponse.json({ 
+      success: true, 
+      users_count: usersResult.length,
+      sample_resume: resumeResult[0] || null,
+      resume_columns: resumeResult[0] ? Object.keys(resumeResult[0]) : []
+    });
   } catch (error: any) {
     console.error("Database error:", error);
     

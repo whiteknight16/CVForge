@@ -5,8 +5,11 @@ import { getSession } from '@/lib/session'
 import { eq, and } from 'drizzle-orm'
 
 export async function POST(request: Request) {
+  let resume_id: string | undefined
+  let session: any
+  
   try {
-    const session = await getSession()
+    session = await getSession()
 
     if (!session) {
       return NextResponse.json(
@@ -16,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { resume_id } = body
+    resume_id = body.resume_id
 
     if (!resume_id) {
       return NextResponse.json(
@@ -82,6 +85,7 @@ export async function POST(request: Request) {
           skills: null,
           languages: null,
           links: null,
+          customization: { template: 'melitta', font: 'times', theme: 'classic' },
           sectionOrder: defaultSectionOrder,
           skippedSections: [],
         },
@@ -111,6 +115,10 @@ export async function POST(request: Request) {
       ]
     }
 
+    // ALWAYS ensure personal_details is first and cannot be moved
+    sectionOrder = sectionOrder.filter(s => s !== 'personal_details')
+    sectionOrder.unshift('personal_details')
+
     // Get skipped sections from order object
     const skippedSections: string[] = []
     if (resumeData.order && typeof resumeData.order === 'object') {
@@ -135,6 +143,7 @@ export async function POST(request: Request) {
         skills: resumeData.skills,
         languages: resumeData.languages,
         links: resumeData.links,
+        customization: resumeData.customization || { template: 'melitta', font: 'times', theme: 'classic' },
         sectionOrder,
         skippedSections,
       },

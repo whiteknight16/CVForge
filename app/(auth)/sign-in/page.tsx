@@ -39,8 +39,8 @@ const SignInPage = () => {
         setUser(data.user)
       }
 
-      // Success - redirect to dashboard or resume creation
-      window.location.href = '/resume-creation-options'
+      // Success - redirect to dashboard
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error('Sign-in error:', error)
       alert(error.message || 'Failed to sign in. Please try again.')

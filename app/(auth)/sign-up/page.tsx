@@ -39,8 +39,8 @@ const SignUpPage = () => {
         setUser(data.user)
       }
 
-      // Success - redirect to dashboard or resume creation
-      window.location.href = '/resume-creation-options'
+      // Success - redirect to dashboard
+      window.location.href = '/dashboard'
     } catch (error: any) {
       console.error('Sign-up error:', error)
       alert(error.message || 'Failed to create account. Please try again.')

@@ -29,6 +29,13 @@
       "when": 1767571314747,
       "tag": "0003_huge_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1767582974359,
+      "tag": "0004_strong_komodo",
+      "breakpoints": true
     }
   ]
 }

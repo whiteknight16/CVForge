@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import ResumePreview from '@/components/resume/ResumePreview'
 import type { resume_section_order } from '@/db/schema'
 import { templates, fonts, themes } from '@/lib/resume-constants'
+import { toast } from 'sonner'
 
 const CreateResumePage = () => {
   const params = useParams()
@@ -65,6 +66,21 @@ const CreateResumePage = () => {
         }
 
         setResumeData(data.resume)
+        
+        // Load customization settings if they exist
+        console.log('Loading customization from DB:', data.resume.customization)
+        console.log('Loading customization from DB:', data.resume)
+        if (data.resume.customization) {
+          if (data.resume.customization.template) {
+            setSelectedTemplate(data.resume.customization.template)
+          }
+          if (data.resume.customization.font) {
+            setSelectedFont(data.resume.customization.font)
+          }
+          if (data.resume.customization.theme) {
+            setSelectedTheme(data.resume.customization.theme)
+          }
+        }
         
         // Build section order from order object
         // Order object format: {sectionName: isSkipped (boolean)}
@@ -361,24 +377,50 @@ const CreateResumePage = () => {
       
       // Show user instruction
       setTimeout(() => {
-        alert('Please use "Save as PDF" option in the print dialog to save your resume as PDF.')
+        toast.info('Use "Save as PDF" in the print dialog to save your resume')
       }, 100)
     } catch (error) {
       console.error('Error downloading PDF:', error)
-      alert('Failed to open print dialog. Please try again.')
+      toast.error('Failed to open print dialog. Please try again.')
     } finally {
       setIsDownloading(false)
     }
   }
 
-  // Handle save (placeholder)
-  const handleSave = () => {
-    console.log('Save resume clicked')
-    console.log('Resume data:', resumeData)
-    console.log('Section order:', sectionOrder)
-    console.log('Selected template:', selectedTemplate)
-    console.log('Selected font:', selectedFont)
-    console.log('Selected theme:', selectedTheme)
+  // Handle save - saves customization settings
+  const handleSave = async () => {
+    if (!user?.user_id || !resumeId) {
+      toast.error('Please log in to save your resume')
+      return
+    }
+
+    try {
+      const customization = {
+        template: selectedTemplate,
+        font: selectedFont,
+        theme: selectedTheme,
+      }
+
+      const response = await fetch('/api/resume/save-customization', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resumeId,
+          customization,
+        }),
+      })
+
+      if (response.ok) {
+        toast.success('Resume customization saved successfully!')
+      } else {
+        toast.error('Failed to save customization. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error saving customization:', error)
+      toast.error('An error occurred while saving. Please try again.')
+    }
   }
 
   return (
@@ -440,35 +482,16 @@ const CreateResumePage = () => {
                   </div>
                   <div className="flex-1">
                     <Button
-                      onClick={handleDownloadHTML}
-                      disabled={isDownloading}
-                      variant="outline"
+                      onClick={handleSave}
+                      variant="secondary"
                       className="w-full"
                       size="lg"
                     >
-                      {isDownloading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download className="mr-2 h-4 w-4" />
-                          Download HTML
-                        </>
-                      )}
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Resume
                     </Button>
                   </div>
                 </div>
-                <Button
-                  onClick={handleSave}
-                  variant="secondary"
-                  className="w-full mt-3"
-                  size="lg"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Resume
-                </Button>
               </div>
               
               {/* All customization options visible */}

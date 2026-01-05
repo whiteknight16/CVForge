@@ -103,7 +103,7 @@ export async function POST(request: Request) {
       languages: resumeData.languages || null,
       links: resumeData.links || null,
       order: orderObject,
-      updated_at: new Date(),
+      updated_at: new Date().toISOString(),
     }
 
     // Try to check if resume exists, but if query fails, assume it's new

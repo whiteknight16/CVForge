@@ -37,17 +37,19 @@ const UserMenu = () => {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-10 w-10 rounded-full"
+          className="relative h-10 w-10 rounded-full p-0 overflow-hidden"
           disabled={isLoggingOut}
         >
           {user.image ? (
-            <img
-              src={user.image}
-              alt={user.name || user.email}
-              className="h-10 w-10 rounded-full object-cover"
-            />
+            <div className="h-10 w-10 rounded-full overflow-hidden border-2 border-border/50">
+              <img
+                src={user.image}
+                alt={user.name || user.email}
+                className="h-full w-full object-cover"
+              />
+            </div>
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary border-2 border-border/50">
               <User className="h-5 w-5" />
             </div>
           )}

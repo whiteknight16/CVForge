@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider"
 import SessionProvider from "@/components/SessionProvider"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           >
           <SessionProvider />
             {children}
+            <Toaster richColors position="bottom-right" />
           </ThemeProvider>
         </body>
       </html>
