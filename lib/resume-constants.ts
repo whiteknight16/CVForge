@@ -25,7 +25,7 @@ export interface Theme {
 export const templates: Template[] = [
   { 
     id: 'melitta', 
-    name: 'Melitta Bentz', 
+    name: 'Classic', 
     style: 'classic',
     description: 'Centered headers with clean borders'
   },
@@ -37,39 +37,63 @@ export const templates: Template[] = [
   },
   { 
     id: 'grace', 
-    name: 'Grace Hopper', 
+    name: 'Professional', 
     style: 'professional',
-    description: 'Two-column layout with sidebar'
+    description: 'Two-column layout'
   },
   { 
     id: 'shakespeare', 
-    name: 'William Shakespeare', 
+    name: 'Elegant', 
     style: 'elegant',
-    description: 'Elegant centered with double borders'
+    description: 'Centered with double borders'
   },
   { 
     id: 'feynman', 
-    name: 'Richard Feynman', 
+    name: 'Academic', 
     style: 'academic',
-    description: 'Academic style with minimal borders'
+    description: 'Minimal borders'
   },
   { 
     id: 'ampere', 
-    name: 'André-Marie Ampère', 
+    name: 'Creative', 
     style: 'creative',
-    description: 'Creative with dashed borders'
+    description: 'Dashed borders'
   },
   { 
     id: 'minimal', 
     name: 'Minimal', 
     style: 'minimal',
-    description: 'Ultra-clean with no borders'
+    description: 'No borders'
   },
   { 
     id: 'executive', 
     name: 'Executive', 
     style: 'executive',
-    description: 'Bold headers with strong accents'
+    description: 'Bold headers'
+  },
+  { 
+    id: 'compact', 
+    name: 'Compact', 
+    style: 'compact',
+    description: 'Space-efficient'
+  },
+  { 
+    id: 'traditional', 
+    name: 'Traditional', 
+    style: 'traditional',
+    description: 'Classic serif'
+  },
+  { 
+    id: 'tech', 
+    name: 'Tech', 
+    style: 'tech',
+    description: 'Modern tech style'
+  },
+  { 
+    id: 'serif', 
+    name: 'Serif', 
+    style: 'serif',
+    description: 'Traditional serif'
   },
 ]
 

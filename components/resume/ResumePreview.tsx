@@ -98,6 +98,42 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
           namePosition: 'top-left',
           nameSize: 'text-4xl',
         }
+      case 'compact':
+        return {
+          layout: 'single',
+          headerAlignment: 'left',
+          sectionHeaderStyle: 'border-b pb-0.5',
+          nameStyle: 'text-left text-2xl font-semibold',
+          namePosition: 'top-left',
+          nameSize: 'text-2xl',
+        }
+      case 'traditional':
+        return {
+          layout: 'single',
+          headerAlignment: 'center',
+          sectionHeaderStyle: 'border-b-2 pb-1.5 mb-3',
+          nameStyle: 'text-center text-4xl font-serif',
+          namePosition: 'top-center',
+          nameSize: 'text-4xl',
+        }
+      case 'tech':
+        return {
+          layout: 'single',
+          headerAlignment: 'left',
+          sectionHeaderStyle: 'border-l-4 pl-4 py-1',
+          nameStyle: 'text-left text-3xl font-bold tracking-tight',
+          namePosition: 'top-left',
+          nameSize: 'text-3xl',
+        }
+      case 'serif':
+        return {
+          layout: 'single',
+          headerAlignment: 'left',
+          sectionHeaderStyle: 'border-b-2 pb-2 mb-3',
+          nameStyle: 'text-left text-3xl font-serif italic',
+          namePosition: 'top-left',
+          nameSize: 'text-3xl',
+        }
       default: // classic
         return {
           layout: 'single',
@@ -137,7 +173,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
         <h1 className={`${templateStyles.nameStyle} mb-1`} style={{ color: textColor }}>
           {pd.name}
         </h1>
-        <div className={`flex flex-wrap items-center gap-3 text-sm ${templateStyles.headerAlignment === 'center' ? 'justify-center' : 'justify-start'}`} style={{ color: textColor, opacity: 0.8 }}>
+        <div className={`flex flex-wrap items-center gap-3 text-xs ${templateStyles.headerAlignment === 'center' ? 'justify-center' : 'justify-start'}`} style={{ color: textColor, opacity: 0.8 }}>
           {pd.email && <span>{pd.email}</span>}
           {pd.phone && <span>• {pd.phone}</span>}
           {pd.address && <span>• {pd.address}</span>}
@@ -161,10 +197,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
 
     return (
       <div className="mb-6" style={{ color: textColor }}>
-        <h2 className={`text-lg font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
+        <h2 className={`text-sm font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
           Professional Summary
         </h2>
-        <p className="text-sm leading-relaxed" style={{ color: textColor, opacity: 0.9 }}>
+        <p className="text-xs leading-relaxed" style={{ color: textColor, opacity: 0.9 }}>
           {summary}
         </p>
       </div>
@@ -177,14 +213,14 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
 
     return (
       <div className="mb-6">
-        <h2 className={`text-lg font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
+        <h2 className={`text-sm font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
           Skills
         </h2>
         <div className="flex flex-wrap gap-2">
           {skills.map((skill: string, index: number) => (
             <span
               key={index}
-              className="px-2 py-1 bg-primary/10 text-primary rounded text-xs"
+              className="px-2 py-1 bg-primary/10 text-primary rounded text-[10px]"
             >
               {skill}
             </span>
@@ -201,20 +237,20 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
     return (
       <div className={`mb-6 ${isTwoColumn ? 'flex' : ''}`}>
         <div className={isTwoColumn ? 'flex-1 pr-4' : ''}>
-          <h2 className={`text-lg font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
+          <h2 className={`text-sm font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
             {isTwoColumn ? 'EMPLOYMENT HISTORY' : 'Employment History'}
           </h2>
         </div>
         <div className={isTwoColumn ? 'flex-1' : ''}>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
             {employment.map((job: any, index: number) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold" style={{ color: textColor }}>{job.position}</h3>
-                    <p className="text-sm" style={{ color: textColor, opacity: 0.8 }}>{job.company_name}</p>
+                    <h3 className="font-semibold text-xs" style={{ color: textColor }}>{job.position}</h3>
+                    <p className="text-xs" style={{ color: textColor, opacity: 0.8 }}>{job.company_name}</p>
                   </div>
-                  <div className="text-sm text-right" style={{ color: textColor, opacity: 0.7 }}>
+                  <div className="text-xs text-right" style={{ color: textColor, opacity: 0.7 }}>
                     {job.start_date && (
                       <span>{new Date(job.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                     )}
@@ -226,7 +262,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
                   </div>
                 </div>
                 {job.description && (
-                  <p className="text-sm mt-2" style={{ color: textColor, opacity: 0.9 }}>{job.description}</p>
+                  <p className="text-xs mt-2" style={{ color: textColor, opacity: 0.9 }}>{job.description}</p>
                 )}
               </div>
             ))}
@@ -243,23 +279,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
     return (
       <div className={`mb-6 ${isTwoColumn ? 'flex' : ''}`}>
         <div className={isTwoColumn ? 'flex-1 pr-4' : ''}>
-          <h2 className={`text-lg font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
+          <h2 className={`text-sm font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
             {isTwoColumn ? 'EDUCATION' : 'Education'}
           </h2>
         </div>
         <div className={isTwoColumn ? 'flex-1' : ''}>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
             {education.map((edu: any, index: number) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-semibold" style={{ color: textColor }}>{edu.degree}</h3>
-                    <p className="text-sm" style={{ color: textColor, opacity: 0.8 }}>{edu.school_name}</p>
+                    <h3 className="font-semibold text-xs" style={{ color: textColor }}>{edu.degree}</h3>
+                    <p className="text-xs" style={{ color: textColor, opacity: 0.8 }}>{edu.school_name}</p>
                     {edu.field_of_study && (
-                      <p className="text-sm" style={{ color: textColor, opacity: 0.8 }}>{edu.field_of_study}</p>
+                      <p className="text-xs" style={{ color: textColor, opacity: 0.8 }}>{edu.field_of_study}</p>
                     )}
                   </div>
-                  <div className="text-sm text-right" style={{ color: textColor, opacity: 0.7 }}>
+                  <div className="text-xs text-right" style={{ color: textColor, opacity: 0.7 }}>
                     {edu.start_date && (
                       <span>{new Date(edu.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
                     )}
@@ -269,7 +305,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
                   </div>
                 </div>
                 {edu.description && (
-                  <p className="text-sm mt-2" style={{ color: textColor, opacity: 0.9 }}>{edu.description}</p>
+                  <p className="text-xs mt-2" style={{ color: textColor, opacity: 0.9 }}>{edu.description}</p>
                 )}
               </div>
             ))}
@@ -286,12 +322,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
     return (
       <div className={`mb-6 ${isTwoColumn ? 'flex' : ''}`}>
         <div className={isTwoColumn ? 'flex-1 pr-4' : ''}>
-          <h2 className={`text-lg font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
+          <h2 className={`text-sm font-semibold mb-3 ${templateStyles.sectionHeaderStyle || 'border-b pb-1'}`} style={{ color: textColor, borderColor: textColor }}>
             {isTwoColumn ? 'PROJECTS' : 'Projects'}
           </h2>
         </div>
         <div className={isTwoColumn ? 'flex-1' : ''}>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
           {projects.map((project: any, index: number) => {
             // Ensure project is an object and has required fields
             if (!project || typeof project !== 'object') return null
@@ -308,17 +344,17 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
             return (
               <div key={index} className="space-y-2">
                 {projectName && (
-                  <h3 className="font-semibold">{projectName}</h3>
+                  <h3 className="font-semibold text-xs" style={{ color: textColor }}>{projectName}</h3>
                 )}
                 {description && (
-                  <p className="text-sm text-muted-foreground">{description}</p>
+                  <p className="text-xs" style={{ color: textColor, opacity: 0.9 }}>{description}</p>
                 )}
                 {technologies.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2">
                     {technologies.map((tech: string, techIndex: number) => (
                       <span
                         key={techIndex}
-                        className="px-2 py-1 bg-primary/10 text-primary rounded text-xs"
+                        className="px-2 py-1 bg-primary/10 text-primary rounded text-[10px]"
                       >
                         {tech}
                       </span>
@@ -327,17 +363,30 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
                 )}
                 {Object.keys(links).length > 0 && (
                   <div className="flex flex-wrap gap-3 mt-2">
-                    {Object.entries(links).map(([label, url]: [string, any]) => (
-                      <a
-                        key={label}
-                        href={typeof url === 'string' ? url : String(url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
-                      >
-                        {label}
-                      </a>
-                    ))}
+                    {Object.entries(links).map(([label, url]: [string, any]) => {
+                      // Normalize URL to ensure it's a proper absolute URL
+                      const normalizeUrl = (url: any): string => {
+                        if (!url) return '#'
+                        const urlString = typeof url === 'string' ? url : String(url)
+                        if (!urlString || urlString.trim() === '') return '#'
+                        if (urlString.startsWith('http://') || urlString.startsWith('https://')) return urlString
+                        if (urlString.startsWith('www.')) return `http://${urlString}`
+                        if (urlString.includes('.') && !urlString.startsWith('/')) return `https://${urlString}`
+                        return urlString
+                      }
+                      const normalizedUrl = normalizeUrl(url)
+                      return (
+                        <a
+                          key={label}
+                          href={normalizedUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {label}
+                        </a>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -351,23 +400,98 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
 
   const renderLanguages = () => {
     const languages = Array.isArray(data.languages) ? data.languages : []
-    if (languages.length === 0) return null
+    // Filter out any invalid entries
+    const validLanguages = languages.filter((lang: any) => {
+      if (!lang || typeof lang !== 'object' || Array.isArray(lang)) return false
+      // Must have at least a language property that can be converted to string
+      return lang.language != null
+    })
+    if (validLanguages.length === 0) return null
 
     return (
       <div className="mb-6">
-        <h2 className={`text-lg font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
+        <h2 className={`text-sm font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
           Languages
         </h2>
         <div className="space-y-1">
-          {languages.map((lang: any, index: number) => (
-            <div key={index} className="flex justify-between text-sm">
-              <span>{lang.language}</span>
-              <span className="text-muted-foreground capitalize">{lang.proficiency}</span>
-            </div>
-          ))}
+          {validLanguages.map((lang: any, index: number) => {
+            // Ensure lang is an object and extract values safely
+            if (!lang || typeof lang !== 'object' || Array.isArray(lang)) return null
+            
+            // Safely extract language name - must be a primitive value
+            let languageName = ''
+            if (typeof lang.language === 'string') {
+              languageName = lang.language
+            } else if (typeof lang.language === 'number' || typeof lang.language === 'boolean') {
+              languageName = String(lang.language)
+            } else if (lang.language != null && typeof lang.language !== 'object') {
+              languageName = String(lang.language)
+            }
+            // If lang.language is an object, skip this entry
+            if (typeof lang.language === 'object' && lang.language !== null) {
+              return null
+            }
+            
+            // Safely extract proficiency - must be a primitive value
+            let proficiency = ''
+            if (typeof lang.proficiency === 'string') {
+              proficiency = lang.proficiency
+            } else if (typeof lang.proficiency === 'number' || typeof lang.proficiency === 'boolean') {
+              proficiency = String(lang.proficiency)
+            } else if (lang.proficiency != null && typeof lang.proficiency !== 'object') {
+              proficiency = String(lang.proficiency)
+            }
+            // If lang.proficiency is an object, set to empty string
+            if (typeof lang.proficiency === 'object' && lang.proficiency !== null) {
+              proficiency = ''
+            }
+            
+            // Skip if no language name
+            if (!languageName || languageName.trim() === '' || languageName === '[object Object]') return null
+            
+            // Final safety check - ensure we're only rendering strings
+            if (typeof languageName !== 'string' || typeof proficiency !== 'string') {
+              return null
+            }
+            
+            return (
+              <div key={`lang-${index}-${languageName}`} className="flex justify-between text-xs" style={{ color: textColor }}>
+                <span>{languageName}</span>
+                {proficiency && proficiency.trim() !== '' && (
+                  <span style={{ color: textColor, opacity: 0.8 }} className="capitalize">{proficiency}</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     )
+  }
+
+  // Helper function to normalize URLs
+  const normalizeUrl = (url: any): string => {
+    if (!url) return '#'
+    const urlString = typeof url === 'string' ? url : String(url)
+    if (!urlString || urlString.trim() === '') return '#'
+    
+    // If it already starts with http:// or https://, return as is
+    if (urlString.startsWith('http://') || urlString.startsWith('https://')) {
+      return urlString
+    }
+    
+    // If it starts with www., add http://
+    if (urlString.startsWith('www.')) {
+      return `http://${urlString}`
+    }
+    
+    // If it doesn't start with http:// or https://, add https://
+    // This handles cases like "github.com/username" or "linkedin.com/in/username"
+    if (urlString.includes('.') && !urlString.startsWith('/')) {
+      return `https://${urlString}`
+    }
+    
+    // For relative URLs or invalid URLs, return as is (they'll be treated as relative)
+    return urlString
   }
 
   const renderLinks = () => {
@@ -376,21 +500,24 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, order, fontFamily, 
 
     return (
       <div className="mb-6">
-        <h2 className={`text-lg font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
+        <h2 className={`text-sm font-semibold mb-2 pb-1 ${templateStyles.sectionHeaderStyle}`} style={{ color: textColor, borderColor: textColor }}>
           Links
         </h2>
         <div className="space-y-1">
-          {Object.entries(links).map(([label, url]: [string, any]) => (
-            <a
-              key={label}
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline block"
-            >
-              {label}
-            </a>
-          ))}
+          {Object.entries(links).map(([label, url]: [string, any]) => {
+            const normalizedUrl = normalizeUrl(url)
+            return (
+              <a
+                key={label}
+                href={normalizedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline block"
+              >
+                {label}
+              </a>
+            )
+          })}
         </div>
       </div>
     )

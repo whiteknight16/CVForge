@@ -65,42 +65,62 @@ const CreateResumePage = () => {
           return
         }
 
-        setResumeData(data.resume)
+        // Structure the resume data for ResumePreview component
+        // The API returns data.resume with all fields, which is what ResumePreview expects
+        const resume = data.resume
+        setResumeData({
+          personal_details: resume.personal_details || null,
+          professional_summary: resume.professional_summary || null,
+          employment_history: resume.employment_history || null,
+          education: resume.education || null,
+          projects: resume.projects || null,
+          skills: resume.skills || null,
+          languages: resume.languages || null,
+          links: resume.links || null,
+        })
         
         // Load customization settings if they exist
-        console.log('Loading customization from DB:', data.resume.customization)
-        console.log('Loading customization from DB:', data.resume)
-        if (data.resume.customization) {
-          if (data.resume.customization.template) {
-            setSelectedTemplate(data.resume.customization.template)
+        if (resume.customization) {
+          if (resume.customization.template) {
+            setSelectedTemplate(resume.customization.template)
           }
-          if (data.resume.customization.font) {
-            setSelectedFont(data.resume.customization.font)
+          if (resume.customization.font) {
+            setSelectedFont(resume.customization.font)
           }
-          if (data.resume.customization.theme) {
-            setSelectedTheme(data.resume.customization.theme)
+          if (resume.customization.theme) {
+            setSelectedTheme(resume.customization.theme)
           }
         }
         
-        // Build section order from order object
-        // Order object format: {sectionName: isSkipped (boolean)}
-        // IMPORTANT: personal_details MUST always be first and cannot be skipped
+        // Build section order from order array or sectionOrder
+        // The API might return sectionOrder directly, or we need to use order
         let orderedSections: resume_section_order = []
-        if (data.resume.order && typeof data.resume.order === 'object') {
-          const orderObj = data.resume.order as Record<string, boolean>
-          // Get all sections in the order they appear in the object, filtering out skipped ones
-          const sectionsInOrder = Object.keys(orderObj).filter(key => orderObj[key] === false)
-          // ALWAYS ensure personal_details is first, regardless of order object
-          // Remove personal_details from wherever it might be, then add it at the start
-          const otherSections = sectionsInOrder.filter(s => s !== 'personal_details')
+        
+        // Check if API returned sectionOrder directly
+        if (resume.sectionOrder && Array.isArray(resume.sectionOrder)) {
+          orderedSections = resume.sectionOrder as resume_section_order
+        } else if (resume.order) {
+          // Use order from database
+          if (Array.isArray(resume.order)) {
+            // New format: array of section names
+            orderedSections = resume.order as resume_section_order
+          } else if (typeof resume.order === 'object') {
+            // Legacy format: object with {sectionName: isSkipped}
+            // Convert to array format for backward compatibility
+            const orderObj = resume.order as Record<string, boolean>
+            const sectionsInOrder = Object.keys(orderObj).filter(key => orderObj[key] === false)
+            orderedSections = sectionsInOrder as resume_section_order
+          }
+        }
+        
+        // ALWAYS ensure personal_details is first
+        const filteredOrder = orderedSections.filter(s => s !== 'personal_details')
+        orderedSections = ['personal_details', ...filteredOrder] as resume_section_order
+        
+        // If still no order, use default
+        if (orderedSections.length === 0 || (orderedSections.length === 1 && orderedSections[0] === 'personal_details')) {
           orderedSections = [
-            'personal_details', // Always first - highest priority
-            ...otherSections
-          ] as resume_section_order
-        } else {
-          // Default order if no order object - personal_details always first
-          orderedSections = [
-            'personal_details', // Always first - highest priority
+            'personal_details',
             'skills',
             'employment_history',
             'education',
@@ -108,8 +128,9 @@ const CreateResumePage = () => {
             'languages',
             'links',
             'professional_summary'
-          ]
+          ] as resume_section_order
         }
+        
         setSectionOrder(orderedSections)
       } catch (error: any) {
         console.error('Error fetching resume:', error)
@@ -495,25 +516,38 @@ const CreateResumePage = () => {
               </div>
               
               {/* All customization options visible */}
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {/* Styles Section */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Choose a Template</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <h3 className="text-base font-semibold mb-3">Choose a Template</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {templates.map((template) => (
                       <button
                         key={template.id}
                         onClick={() => setSelectedTemplate(template.id)}
-                        className={`relative px-4 py-2 rounded-lg border-2 transition-all flex items-center gap-2 ${
+                        className={`relative px-3 py-2 rounded-lg border transition-all group ${
                           selectedTemplate === template.id
-                            ? 'border-primary bg-primary/10 text-primary font-semibold shadow-md'
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-primary bg-primary/10 shadow-sm'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                       >
-                        <span>{template.name}</span>
-                        {selectedTemplate === template.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="text-left min-w-0 flex-1">
+                            <p className={`text-sm font-medium truncate ${
+                              selectedTemplate === template.id ? 'text-primary' : ''
+                            }`}>
+                              {template.name}
+                            </p>
+                            {template.description && (
+                              <p className="text-xs text-muted-foreground truncate">
+                                {template.description}
+                              </p>
+                            )}
+                          </div>
+                          {selectedTemplate === template.id && (
+                            <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -521,31 +555,31 @@ const CreateResumePage = () => {
 
                 {/* Fonts Section */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Choose a Font</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <h3 className="text-base font-semibold mb-3">Choose a Font</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {fonts.map((font) => (
                       <button
                         key={font.id}
                         onClick={() => setSelectedFont(font.id)}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        className={`p-3 rounded-lg border transition-all text-left ${
                           selectedFont === font.id
-                            ? 'border-primary bg-primary/10 shadow-md'
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-primary bg-primary/10 shadow-sm'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                       >
-                        <div className="mb-2">
-                          <p className="font-bold text-lg mb-1" style={{ fontFamily: font.family }}>
-                            {font.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground" style={{ fontFamily: font.family }}>
-                            The quick brown fox jumps over the lazy dog
-                          </p>
-                        </div>
-                        {selectedFont === font.id && (
-                          <div className="flex items-center justify-end mt-2">
-                            <Check className="h-5 w-5 text-primary" />
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm mb-0.5" style={{ fontFamily: font.family }}>
+                              {font.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate" style={{ fontFamily: font.family }}>
+                              The quick brown fox
+                            </p>
                           </div>
-                        )}
+                          {selectedFont === font.id && (
+                            <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -553,39 +587,39 @@ const CreateResumePage = () => {
 
                 {/* Themes Section */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Choose a Theme</h3>
-                  <div className="grid grid-cols-3 gap-3">
+                  <h3 className="text-base font-semibold mb-3">Choose a Color</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {themes.map((theme) => (
                       <button
                         key={theme.id}
                         onClick={() => setSelectedTheme(theme.id)}
-                        className={`relative p-4 rounded-lg border-2 transition-all ${
+                        className={`relative p-3 rounded-lg border transition-all ${
                           selectedTheme === theme.id
-                            ? 'border-primary shadow-lg ring-2 ring-primary/20'
-                            : 'border-border hover:border-primary/50'
+                            ? 'border-primary shadow-sm ring-1 ring-primary/20'
+                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                       >
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-2 mb-1.5">
                           <div 
-                            className="w-8 h-8 rounded border border-border"
+                            className="w-6 h-6 rounded border border-border flex-shrink-0"
                             style={{ backgroundColor: theme.bgColor }}
                           />
                           <div 
-                            className="w-6 h-6 rounded-full"
+                            className="w-5 h-5 rounded-full flex-shrink-0"
                             style={{ backgroundColor: theme.textColor }}
                           />
                         </div>
-                        <p className="text-sm font-medium">{theme.name}</p>
+                        <p className="text-xs font-medium">{theme.name}</p>
                         {selectedTheme === theme.id && (
-                          <div className="absolute top-2 right-2">
-                            <Check className="h-5 w-5 text-primary" />
+                          <div className="absolute top-1.5 right-1.5">
+                            <Check className="h-3.5 w-3.5 text-primary" />
                           </div>
                         )}
                       </button>
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground mt-3">
-                    Selected: <span className="font-semibold">{selectedThemeData.name}</span>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selected: <span className="font-medium">{selectedThemeData.name}</span>
                   </p>
                 </div>
               </div>

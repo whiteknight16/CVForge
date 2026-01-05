@@ -10,7 +10,7 @@ import ValidationDialog from '@/components/resume/ValidationDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Save, Menu, X } from 'lucide-react'
+import { Save, Menu, X, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/store/auth-store'
 import { toast } from 'sonner'
 import type { personal_details, employment_history, education, projects, resume_section_order } from '@/db/schema'
@@ -74,63 +74,12 @@ const ResumePage = () => {
     
     const fetchResumeData = async () => {
       if (!resumeId) return
-      
-      // If we've already loaded imported data, restore from sessionStorage and skip fetch
-      if (hasLoadedImportedData.current || getImportedDataFlag()) {
-        console.log('Already loaded imported data (from previous render), restoring from sessionStorage')
-        
-        // Try to restore data from sessionStorage backup
-        const backupData = sessionStorage.getItem(`resume_data_${resumeId}`)
-        console.log('Backup data found:', backupData ? 'YES' : 'NO')
-        
-        if (backupData) {
-          try {
-            const parsed = JSON.parse(backupData)
-            console.log('Restoring parsed data:', parsed)
-            
-            const defaultOrder = [
-              'personal_details',
-              'professional_summary',
-              'skills',
-              'employment_history',
-              'education',
-              'projects',
-              'languages',
-              'links',
-            ]
-            
-            // Set state even if component might remount
-            setResumeData({
-              personal_details: parsed.personal_details || null,
-              professional_summary: parsed.professional_summary || null,
-              employment_history: parsed.employment_history || null,
-              education: parsed.education || null,
-              projects: parsed.projects || null,
-              skills: parsed.skills || null,
-              languages: parsed.languages || null,
-              links: parsed.links || null,
-              order: defaultOrder,
-            })
-            
-            setResumeName(parsed.personal_details?.name ? `${parsed.personal_details.name}'s Resume` : 'My Resume')
-            setSkippedSections(new Set())
-            console.log('✅ Restored data from sessionStorage backup')
-          } catch (e) {
-            console.error('Failed to restore from sessionStorage:', e)
-          }
-        } else {
-          console.warn('⚠️ No backup data found in sessionStorage')
-        }
-        
-        setIsLoading(false)
-        return
-      }
 
       try {
         setIsLoading(true)
         
-        // Check for imported resume data in localStorage
-        // Add a small delay to ensure localStorage is available after navigation
+        // STEP 1: Check for imported resume data in localStorage FIRST
+        // This takes priority over database fetch for new imports
         await new Promise(resolve => setTimeout(resolve, 100))
         
         const importKey = `resume_import_${resumeId}`
@@ -140,7 +89,7 @@ const ResumePage = () => {
         console.log('Found imported data:', importedData ? 'YES' : 'NO')
         
         if (importedData) {
-          // Load imported data
+          // Load imported data - this takes priority
           console.log('Loading imported resume data from localStorage')
           try {
             const parsed = JSON.parse(importedData)
@@ -199,28 +148,66 @@ const ResumePage = () => {
           }
         }
         
-        // CRITICAL: Double-check before database fetch
-        // If we've loaded imported data OR sessionStorage says we did, NEVER fetch from DB
+        // STEP 2: Check sessionStorage backup (for re-renders)
         if (hasLoadedImportedData.current || getImportedDataFlag()) {
-          console.log('BLOCKED: Already loaded imported data, skipping database fetch completely')
-          if (isMounted) {
-            setIsLoading(false)
+          console.log('Already loaded imported data (from previous render), restoring from sessionStorage')
+          
+          const backupData = sessionStorage.getItem(`resume_data_${resumeId}`)
+          console.log('Backup data found:', backupData ? 'YES' : 'NO')
+          
+          if (backupData) {
+            try {
+              const parsed = JSON.parse(backupData)
+              console.log('Restoring parsed data:', parsed)
+              
+              const defaultOrder = [
+                'personal_details',
+                'professional_summary',
+                'skills',
+                'employment_history',
+                'education',
+                'projects',
+                'languages',
+                'links',
+              ]
+              
+              if (isMounted) {
+                setResumeData({
+                  personal_details: parsed.personal_details || null,
+                  professional_summary: parsed.professional_summary || null,
+                  employment_history: parsed.employment_history || null,
+                  education: parsed.education || null,
+                  projects: parsed.projects || null,
+                  skills: parsed.skills || null,
+                  languages: parsed.languages || null,
+                  links: parsed.links || null,
+                  order: defaultOrder,
+                })
+                
+                setResumeName(parsed.personal_details?.name ? `${parsed.personal_details.name}'s Resume` : 'My Resume')
+                setSkippedSections(new Set())
+                setIsLoading(false)
+                console.log('✅ Restored data from sessionStorage backup')
+              }
+              return
+            } catch (e) {
+              console.error('Failed to restore from sessionStorage:', e)
+              // Clear invalid sessionStorage data
+              sessionStorage.removeItem(`resume_imported_${resumeId}`)
+              sessionStorage.removeItem(`resume_data_${resumeId}`)
+              hasLoadedImportedData.current = false
+            }
+          } else {
+            // Flag is set but no backup data - clear flag and proceed to DB
+            console.log('⚠️ Flag set but no backup data, clearing flags and fetching from DB')
+            sessionStorage.removeItem(`resume_imported_${resumeId}`)
+            sessionStorage.removeItem(`resume_data_${resumeId}`)
+            hasLoadedImportedData.current = false
           }
-          return
         }
         
-        // Final check: Make sure localStorage is still empty (in case of race condition)
-        const finalCheck = localStorage.getItem(`resume_import_${resumeId}`)
-        if (finalCheck) {
-          console.log('BLOCKED: Found imported data on final check, skipping database fetch')
-          if (isMounted) {
-            setIsLoading(false)
-          }
-          return
-        }
-        
-        // Only proceed to database fetch if ALL checks pass
-        console.log('✅ All checks passed, fetching from database (no imported data found)')
+        // STEP 3: Fetch from database (only if no imported data found)
+        console.log('✅ No imported data found, fetching from database')
         
         const response = await fetch('/api/resume/get', {
           method: 'POST',
@@ -762,6 +749,12 @@ const ResumePage = () => {
           throw new Error('Invalid response from server')
         }
       } else if (response.ok) {
+        // Clear sessionStorage flags after successful save
+        sessionStorage.removeItem(`resume_imported_${resumeId}`)
+        sessionStorage.removeItem(`resume_data_${resumeId}`)
+        hasLoadedImportedData.current = false
+        console.log('✅ Cleared sessionStorage flags after successful save (empty response)')
+        
         // Empty response but OK status - assume success and redirect
         router.push(`/resume/${resumeId}/create`)
         return
@@ -770,6 +763,13 @@ const ResumePage = () => {
       if (!response.ok) {
         throw new Error(data.error || data.details || 'Failed to save resume')
       }
+      
+      // Clear sessionStorage flags after successful save
+      // This ensures next time we load, we fetch from DB instead of sessionStorage
+      sessionStorage.removeItem(`resume_imported_${resumeId}`)
+      sessionStorage.removeItem(`resume_data_${resumeId}`)
+      hasLoadedImportedData.current = false
+      console.log('✅ Cleared sessionStorage flags after successful save')
       
       // Save successful - redirect to create page
       router.push(`/resume/${resumeId}/create`)
@@ -793,41 +793,39 @@ const ResumePage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-background to-muted/10">
       <Header />
       
       {/* Mobile Menu Toggle */}
-      <div className="lg:hidden border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-16 z-40">
-        <div className="container mx-auto px-4 py-3 space-y-2">
-          <div className="flex items-center justify-between">
+      <div className="lg:hidden border-b border-border/50 bg-card/95 backdrop-blur-md sticky top-16 z-40 shadow-sm">
+        <div className="px-3 py-2.5 space-y-2">
+          <div className="flex items-center justify-between gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="gap-1.5"
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              <span className="ml-2">Sections</span>
+              {isMobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              <span className="text-xs font-medium">Sections</span>
             </Button>
             <Button
               onClick={handleSave}
               disabled={isSaving}
               size="sm"
-              className="gap-2"
+              className="gap-1.5 text-xs"
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-3.5 w-3.5" />
               {isSaving ? 'Saving...' : 'Save'}
             </Button>
           </div>
           <div>
-            <Label htmlFor="resume-name-mobile" className="text-xs font-medium mb-1 block">
-              Resume Name
-            </Label>
             <Input
               id="resume-name-mobile"
               value={resumeName}
               onChange={(e) => setResumeName(e.target.value)}
               placeholder="My Resume"
-              className="w-full text-sm"
+              className="h-8 text-sm"
             />
           </div>
         </div>
@@ -835,10 +833,10 @@ const ResumePage = () => {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 border-r border-border bg-muted/30 overflow-y-auto">
+        <aside className="hidden lg:block w-72 border-r border-border/50 bg-card/50 backdrop-blur-sm overflow-y-auto">
           {/* Resume Name Input */}
-          <div className="p-4 border-b border-border">
-            <Label htmlFor="resume-name" className="text-sm font-medium mb-2 block">
+          <div className="p-4 border-b border-border/50 bg-background/50">
+            <Label htmlFor="resume-name" className="text-xs font-semibold mb-2 block text-muted-foreground uppercase tracking-wide">
               Resume Name
             </Label>
             <Input
@@ -846,7 +844,7 @@ const ResumePage = () => {
               value={resumeName}
               onChange={(e) => setResumeName(e.target.value)}
               placeholder="My Resume"
-              className="w-full"
+              className="w-full font-medium"
             />
           </div>
           <ResumeSidebar
@@ -866,8 +864,19 @@ const ResumePage = () => {
 
         {/* Mobile Sidebar */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-50 bg-background">
-            <div className="h-full w-64 border-r border-border bg-muted/30 overflow-y-auto">
+          <div className="lg:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm">
+            <div className="h-full w-72 border-r border-border/50 bg-card shadow-2xl overflow-y-auto animate-in slide-in-from-left duration-200">
+              <div className="p-3 border-b border-border/50 flex items-center justify-between">
+                <h3 className="font-semibold text-sm">Resume Sections</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
               <ResumeSidebar
                 activeSection={activeSection}
                 onSectionChange={(section) => {
@@ -894,38 +903,56 @@ const ResumePage = () => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Editor Section */}
-          <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-            <SectionEditor
-              section={activeSection}
-              data={resumeData[activeSection as keyof ResumeData]}
-              onUpdate={(data) => updateSectionData(activeSection, data)}
-              onNext={() => {
-                const currentIndex = sectionOrder.indexOf(activeSection)
-                if (currentIndex < sectionOrder.length - 1) {
-                  handleNavigation(sectionOrder[currentIndex + 1])
-                }
-              }}
-              onBack={() => {
-                const currentIndex = sectionOrder.indexOf(activeSection)
-                if (currentIndex > 0) {
-                  // Back navigation doesn't need validation
-                  setActiveSection(sectionOrder[currentIndex - 1])
-                }
-              }}
-              onSkipSection={activeSection !== 'personal_details' ? () => handleSkipSection(activeSection) : undefined}
-              allResumeData={resumeData}
-            />
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-lg sm:text-xl font-bold">{getSectionName(activeSection)}</h2>
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                    {sectionOrder.indexOf(activeSection) + 1} / {sectionOrder.length}
+                  </span>
+                </div>
+                <div className="h-1 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${((sectionOrder.indexOf(activeSection) + 1) / sectionOrder.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <SectionEditor
+                section={activeSection}
+                data={resumeData[activeSection as keyof ResumeData]}
+                onUpdate={(data) => updateSectionData(activeSection, data)}
+                onNext={() => {
+                  const currentIndex = sectionOrder.indexOf(activeSection)
+                  if (currentIndex < sectionOrder.length - 1) {
+                    handleNavigation(sectionOrder[currentIndex + 1])
+                  }
+                }}
+                onBack={() => {
+                  const currentIndex = sectionOrder.indexOf(activeSection)
+                  if (currentIndex > 0) {
+                    // Back navigation doesn't need validation
+                    setActiveSection(sectionOrder[currentIndex - 1])
+                  }
+                }}
+                onSkipSection={activeSection !== 'personal_details' ? () => handleSkipSection(activeSection) : undefined}
+                allResumeData={resumeData}
+              />
+            </div>
           </main>
 
           {/* Preview Section */}
-          <aside className="hidden lg:block w-[600px] border-l border-border bg-muted/20 overflow-y-auto p-4">
-            <ResumePreview data={resumeData} order={sectionOrder} />
+          <aside className="hidden xl:block w-[500px] border-l border-border/50 bg-muted/30 overflow-y-auto p-4">
+            <div className="sticky top-4">
+              <ResumePreview data={resumeData} order={sectionOrder} />
+            </div>
           </aside>
         </div>
       </div>
 
       {/* Mobile Preview Toggle */}
-      <div className="lg:hidden fixed bottom-4 right-4 z-40">
+      <div className="xl:hidden fixed bottom-20 right-4 z-40">
         <Button
           onClick={() => {
             // Toggle preview in mobile
@@ -935,14 +962,19 @@ const ResumePage = () => {
             }
           }}
           size="lg"
-          className="rounded-full shadow-lg"
+          className="rounded-full shadow-xl gap-2"
         >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
           Preview
         </Button>
       </div>
 
       {/* Mobile Preview Section */}
-      <div id="mobile-preview" className="lg:hidden border-t border-border bg-muted/20 p-6">
+      <div id="mobile-preview" className="xl:hidden border-t border-border/50 bg-muted/20 p-4 sm:p-6">
+        <h3 className="text-sm font-semibold mb-4">Resume Preview</h3>
         <ResumePreview data={resumeData} order={sectionOrder} />
       </div>
 
@@ -952,10 +984,19 @@ const ResumePage = () => {
           onClick={handleSave}
           disabled={isSaving}
           size="lg"
-          className="gap-2 shadow-lg"
+          className="gap-2 shadow-2xl"
         >
-          <Save className="h-5 w-5" />
-          {isSaving ? 'Saving...' : 'Save Resume'}
+          {isSaving ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5" />
+              Save Resume
+            </>
+          )}
         </Button>
       </div>
 

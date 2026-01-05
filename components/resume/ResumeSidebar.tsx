@@ -100,10 +100,32 @@ const ResumeSidebar: React.FC<ResumeSidebarProps> = ({
     
     // Check if section has data
     if (Array.isArray(data)) {
+      // For arrays, check if it has valid entries
+      // For languages, ensure entries are objects with valid properties
+      if (data.length === 0) return false
+      if (sectionId === 'languages') {
+        // For languages, check if at least one entry has a language property
+        return data.some((lang: any) => {
+          if (!lang || typeof lang !== 'object') return false
+          const languageName = typeof lang.language === 'string' ? lang.language : (lang.language ? String(lang.language) : '')
+          return languageName && languageName.trim() !== ''
+        })
+      }
       return data.length > 0
     }
-    if (typeof data === 'object') {
-      return Object.keys(data).length > 0
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      // For objects, check if it has meaningful keys
+      const keys = Object.keys(data)
+      if (keys.length === 0) return false
+      // For personal_details, check if name and email exist
+      if (sectionId === 'personal_details') {
+        return !!(data.name && data.email)
+      }
+      return keys.length > 0
+    }
+    // For strings (like professional_summary), check if not empty
+    if (typeof data === 'string') {
+      return data.trim().length > 0
     }
     return !!data
   }

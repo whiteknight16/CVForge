@@ -3,8 +3,7 @@
 import React, { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { FileText, FileUp, Cloud, HardDrive, Loader2, X, Sparkles } from 'lucide-react'
-import { GoogleIcon } from '@/components/ui/google-icon'
+import { FileText, FileUp, HardDrive, Loader2, X, Sparkles } from 'lucide-react'
 import Header from '@/components/Header'
 
 const CreateResumePage = () => {
@@ -155,19 +154,6 @@ const CreateResumePage = () => {
     }
   }
 
-  // Handle Google Drive import
-  const handleGoogleDriveImport = () => {
-    // TODO: Implement Google Drive integration
-    console.log('Google Drive import')
-    alert('Google Drive integration coming soon!')
-  }
-
-  // Handle Dropbox import
-  const handleDropboxImport = () => {
-    // TODO: Implement Dropbox integration
-    console.log('Dropbox import')
-    alert('Dropbox integration coming soon!')
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background via-background to-muted/20">
@@ -237,43 +223,6 @@ const CreateResumePage = () => {
             >
               ← Back
             </Button>
-
-            {/* Cloud Import Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              {/* Google Drive */}
-              <Button
-                variant="outline"
-                onClick={handleGoogleDriveImport}
-                className="h-auto p-6 flex flex-col items-center gap-3"
-                disabled={isExtracting}
-              >
-                <GoogleIcon className="h-8 w-8" />
-                <span className="font-semibold">Import from Google Drive</span>
-              </Button>
-
-              {/* Dropbox */}
-              <Button
-                variant="outline"
-                onClick={handleDropboxImport}
-                className="h-auto p-6 flex flex-col items-center gap-3"
-                disabled={isExtracting}
-              >
-                <Cloud className="h-8 w-8" />
-                <span className="font-semibold">Import from Dropbox</span>
-              </Button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or upload from system
-                </span>
-              </div>
-            </div>
 
             {/* File Upload Area */}
             {!selectedFile ? (
