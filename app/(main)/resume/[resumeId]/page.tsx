@@ -34,7 +34,7 @@ const ResumePage = () => {
   // Example: /resume/e5515ebe-ebe9-4c95-a42b-cc8c409deb5c
   const resumeId = params.resumeId as string
   const { user } = useAuthStore()
-  const [activeSection, setActiveSection] = useState<string>('personal_details')
+  const [activeSection, setActiveSection] = useState<'personal_details' | 'professional_summary' | 'employment_history' | 'education' | 'projects' | 'skills' | 'languages' | 'links'>('personal_details')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -108,7 +108,7 @@ const ResumePage = () => {
             console.log('Cleared localStorage key:', importKey)
             
             // Set resume data with proper structure including order
-            const defaultOrder = [
+            const defaultOrder: resume_section_order = [
               'personal_details',
               'professional_summary',
               'skills',
@@ -160,7 +160,7 @@ const ResumePage = () => {
               const parsed = JSON.parse(backupData)
               console.log('Restoring parsed data:', parsed)
               
-              const defaultOrder = [
+              const defaultOrder: resume_section_order = [
                 'personal_details',
                 'professional_summary',
                 'skills',
@@ -323,7 +323,7 @@ const ResumePage = () => {
                 'links',
                 'professional_summary'
               ]
-              const filtered = apiOrder.filter(s => s !== 'personal_details')
+              const filtered = apiOrder.filter((s: string) => s !== 'personal_details')
               return ['personal_details', ...filtered]
             })(),
           })
@@ -392,7 +392,7 @@ const ResumePage = () => {
           // Only restore if current data is empty/default
           if (!resumeData.personal_details && parsed.personal_details) {
             console.log('🔄 Restoring data from sessionStorage on render')
-            const defaultOrder = [
+            const defaultOrder: resume_section_order = [
               'personal_details',
               'professional_summary',
               'skills',
@@ -483,13 +483,13 @@ const ResumePage = () => {
     }))
 
     // Move to next section
-    const currentIndex = sectionOrder.indexOf(sectionId)
+    const currentIndex = sectionOrder.indexOf(sectionId as any)
     if (currentIndex < sectionOrder.length - 1) {
       // Find next non-skipped section
       for (let i = currentIndex + 1; i < sectionOrder.length; i++) {
         const nextSection = sectionOrder[i]
         if (nextSection === 'personal_details' || !newSkippedSections.has(nextSection)) {
-          setActiveSection(nextSection)
+          setActiveSection(nextSection as any)
           break
         }
       }
@@ -678,13 +678,13 @@ const ResumePage = () => {
 
     if (!isValid && activeSection !== 'personal_details') {
       // Show validation dialog
-      setPendingNavigation(() => () => setActiveSection(targetSection))
+      setPendingNavigation(() => () => setActiveSection(targetSection as any))
       setShowValidationDialog(true)
     } else {
       // Save before navigating
       await saveResumeToDB()
       // Proceed with navigation
-      setActiveSection(targetSection)
+      setActiveSection(targetSection as any)
     }
   }
 
