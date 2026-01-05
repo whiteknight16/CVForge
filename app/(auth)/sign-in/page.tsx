@@ -7,27 +7,43 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FileText, Mail, Lock } from 'lucide-react'
 import { GoogleIcon } from '@/components/ui/google-icon'
+import { useAuthStore } from '@/store/auth-store'
 
 const SignInPage = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const { setUser } = useAuthStore()
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     
     try {
-      // TODO: Implement email/password sign-in logic
-      console.log('Email sign-in:', { email, password })
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Handle success (redirect, show message, etc.)
-      console.log('Sign-in successful')
-    } catch (error) {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign in')
+      }
+
+      // Update Zustand store
+      if (data.user) {
+        setUser(data.user)
+      }
+
+      // Success - redirect to dashboard or resume creation
+      window.location.href = '/resume-creation-options'
+    } catch (error: any) {
       console.error('Sign-in error:', error)
+      alert(error.message || 'Failed to sign in. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -37,22 +53,18 @@ const SignInPage = () => {
     setIsLoading(true)
     
     try {
-      // TODO: Implement Google sign-in logic
-      console.log('Google sign-in initiated')
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Handle success (redirect, show message, etc.)
-      console.log('Google sign-in successful')
+      // Redirect to Google OAuth
+      // For now, we'll use a simple approach - you can integrate Google OAuth later
+      // This is a placeholder that will need Google OAuth setup
+      window.location.href = '/api/auth/google/redirect'
     } catch (error) {
       console.error('Google sign-in error:', error)
-    } finally {
+      alert('Failed to sign in with Google. Please try again.')
       setIsLoading(false)
     }
   }
 
-  return (
+    return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-muted/20 px-4 py-12">
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
@@ -170,7 +182,7 @@ const SignInPage = () => {
         </p>
       </div>
     </div>
-  )
+    )
 }
 
 export default SignInPage
