@@ -75,24 +75,20 @@ export const templates: Template[] = [
 
 // Font options
 export const fonts: Font[] = [
-  { id: 'verdana', name: 'Verdana', family: 'Verdana, sans-serif', category: 'sans-serif' },
-  { id: 'georgia', name: 'Georgia', family: 'Georgia, serif', category: 'serif' },
-  { id: 'garamond', name: 'Garamond', family: 'Garamond, serif', category: 'serif' },
-  { id: 'arial', name: 'Arial', family: 'Arial, sans-serif', category: 'sans-serif' },
-  { id: 'times', name: 'Times New Roman', family: '"Times New Roman", serif', category: 'serif' },
-  { id: 'helvetica', name: 'Helvetica', family: 'Helvetica, sans-serif', category: 'sans-serif' },
+  { id: 'times', name: 'Times New Roman', family: 'Times New Roman', category: 'serif' },
+  { id: 'verdana', name: 'Verdana', family: 'Verdana', category: 'sans-serif' },
+  { id: 'georgia', name: 'Georgia', family: 'Georgia', category: 'serif' },
+  { id: 'arial', name: 'Arial', family: 'Arial', category: 'sans-serif' },
+  { id: 'helvetica', name: 'Helvetica', family: 'Helvetica', category: 'sans-serif' },
+  { id: 'garamond', name: 'Garamond', family: 'Garamond', category: 'serif' },
 ]
 
-// Theme options - some change only text, some change both text and background
+// Theme options - all with white background, only text color changes
 export const themes: Theme[] = [
-  { id: 'classic', name: 'Classic', textColor: '#000000', bgColor: '#ffffff' },
-  { id: 'blue', name: 'Blue', textColor: '#2563eb', bgColor: '#ffffff' },
-  { id: 'teal', name: 'Teal', textColor: '#14b8a6', bgColor: '#ffffff' },
-  { id: 'green', name: 'Green', textColor: '#16a34a', bgColor: '#ffffff' },
-  { id: 'warm', name: 'Warm', textColor: '#dc2626', bgColor: '#fef2f2' },
-  { id: 'cool', name: 'Cool', textColor: '#0891b2', bgColor: '#ecfeff' },
-  { id: 'dark', name: 'Dark', textColor: '#ffffff', bgColor: '#1e293b' },
-  { id: 'elegant', name: 'Elegant', textColor: '#475569', bgColor: '#f8fafc' },
-  { id: 'bold', name: 'Bold', textColor: '#000000', bgColor: '#fef3c7' },
+  { id: 'classic', name: 'Classic Black', textColor: '#000000', bgColor: '#ffffff' },
+  { id: 'slate', name: 'Corporate Gray', textColor: '#334155', bgColor: '#ffffff' },
+  { id: 'blue', name: 'Professional Blue', textColor: '#1e3a8a', bgColor: '#ffffff' },
+  { id: 'teal', name: 'Modern Teal', textColor: '#115e59', bgColor: '#ffffff' },
+  { id: 'green', name: 'Fresh Green', textColor: '#166534', bgColor: '#ffffff' },
 ]
 

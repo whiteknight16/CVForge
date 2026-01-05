@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
 import Header from '@/components/Header'
-import { Loader2, Check } from 'lucide-react'
+import { Loader2, Check, Download, Save, Printer } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import ResumePreview from '@/components/resume/ResumePreview'
 import type { resume_section_order } from '@/db/schema'
 import { templates, fonts, themes } from '@/lib/resume-constants'
@@ -17,12 +18,16 @@ const CreateResumePage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [resumeData, setResumeData] = useState<any>(null)
   const [sectionOrder, setSectionOrder] = useState<resume_section_order>([])
+  const [isDownloading, setIsDownloading] = useState(false)
   
   // Customization state
   const [selectedTemplate, setSelectedTemplate] = useState('melitta')
-  const [selectedFont, setSelectedFont] = useState('garamond')
-  const [selectedTheme, setSelectedTheme] = useState('teal')
+  const [selectedFont, setSelectedFont] = useState('times')
+  const [selectedTheme, setSelectedTheme] = useState('classic')
   const [templateScrollIndex, setTemplateScrollIndex] = useState(0)
+  
+  // Ref for the resume preview container
+  const resumePreviewRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const fetchResume = async () => {
@@ -122,6 +127,260 @@ const CreateResumePage = () => {
   const selectedThemeData = themes.find(t => t.id === selectedTheme) || themes[2] // Default to teal
   const selectedTemplateStyle = templates.find(t => t.id === selectedTemplate)?.style || 'classic'
 
+  // Print to PDF (uses browser's native print dialog)
+  const handlePrintPDF = () => {
+    // Create a print-friendly window
+    const printWindow = window.open('', '_blank')
+    if (!printWindow || !resumePreviewRef.current) return
+
+    const resumeContent = getCleanResumeContent()
+    if (!resumeContent) return
+    
+    const selectedFontValue = fonts.find(f => f.id === selectedFont)?.family || 'Times New Roman'
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${resumeData?.resume_name || 'Resume'}</title>
+          <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: '${selectedFontValue}', sans-serif !important;
+              background: white;
+              padding: 0;
+              margin: 0;
+            }
+            * {
+              font-family: '${selectedFontValue}', sans-serif !important;
+            }
+            @media print {
+              body {
+                margin: 0;
+                padding: 0;
+              }
+              @page {
+                margin: 0.5in;
+                size: A4;
+              }
+            }
+            .resume-container {
+              max-width: 8.5in;
+              margin: 0 auto !important;
+              background: white !important;
+              padding: 2rem !important;
+              font-family: '${selectedFontValue}', serif !important;
+            }
+            .resume-container * {
+              font-family: '${selectedFontValue}', serif !important;
+            }
+            a {
+              color: inherit !important;
+              text-decoration: underline !important;
+            }
+            /* Clean print output - no shadows or boxes */
+            @media print {
+              .resume-container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="resume-container">
+            ${resumeContent}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
+  // Helper to get only the inner resume content (without wrapper styles)
+  const getCleanResumeContent = () => {
+    if (!resumePreviewRef.current) return null
+    
+    // Clone the element
+    const clonedElement = resumePreviewRef.current.cloneNode(true) as HTMLElement
+    
+    // Copy computed styles to inline
+    const copyStylesToInline = (element: HTMLElement, originalElement: HTMLElement) => {
+      const computedStyles = window.getComputedStyle(originalElement)
+      
+      const stylesToCopy = [
+        'color', 'font-size', 'font-weight', 'font-family', 'text-align', 
+        'line-height', 'text-transform', 'letter-spacing', 'text-decoration',
+        'display', 'flex', 'flex-direction', 'flex-wrap', 'justify-content', 
+        'align-items', 'align-content', 'gap', 'width', 'min-width', 'max-width',
+        'height', 'min-height', 'max-height',
+        'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'padding', 'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+        'background', 'background-color', 
+        'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+        'border-radius', 'border-color', 'border-width', 'border-style',
+        'opacity', 'overflow', 'overflow-x', 'overflow-y'
+      ]
+      
+      stylesToCopy.forEach(prop => {
+        const value = computedStyles.getPropertyValue(prop)
+        if (value && value !== '' && value !== 'none' && value !== 'normal' && value !== 'auto') {
+          element.style.setProperty(prop, value, 'important')
+        }
+      })
+      
+      const children = element.children
+      const originalChildren = originalElement.children
+      for (let i = 0; i < children.length; i++) {
+        if (children[i] instanceof HTMLElement && originalChildren[i] instanceof HTMLElement) {
+          copyStylesToInline(children[i] as HTMLElement, originalChildren[i] as HTMLElement)
+        }
+      }
+    }
+    
+    copyStylesToInline(clonedElement, resumePreviewRef.current)
+    return clonedElement.innerHTML
+  }
+
+  // Download as HTML
+  const handleDownloadHTML = () => {
+    if (!resumePreviewRef.current) return
+    
+    try {
+      setIsDownloading(true)
+      
+      const resumeContent = getCleanResumeContent()
+      if (!resumeContent) return
+      
+      const selectedFontValue = fonts.find(f => f.id === selectedFont)?.family || 'Times New Roman'
+      
+      const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${resumeData?.resume_name || 'Resume'}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto:wght@400;500;700&family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Lora:wght@400;600;700&family=Crimson+Text:wght@400;600;700&family=Source+Sans+Pro:wght@400;600;700&family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600;700&family=Libre+Baskerville:wght@400;700&family=EB+Garamond:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: '${selectedFontValue}', serif !important;
+      background: white;
+      padding: 0;
+      margin: 0;
+      line-height: 1.6;
+    }
+    body > div {
+      max-width: 8.5in;
+      margin: 0 auto !important;
+      background: white !important;
+      padding: 2rem !important;
+      font-family: '${selectedFontValue}', serif !important;
+    }
+    body * {
+      font-family: '${selectedFontValue}', serif !important;
+    }
+    a {
+      color: inherit !important;
+      text-decoration: underline !important;
+    }
+    @media print {
+      body { 
+        padding: 0; 
+        background: white; 
+        margin: 0;
+      }
+      body > div { 
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0.5in !important;
+        margin: 0 !important;
+      }
+      @page { 
+        margin: 0.5in; 
+        size: A4; 
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="resume-container">
+    ${resumeContent}
+  </div>
+</body>
+</html>
+      `.trim()
+      
+      // Create blob and download
+      const blob = new Blob([htmlContent], { type: 'text/html' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${resumeData?.resume_name || 'resume'}.html`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading HTML:', error)
+      alert('Failed to download HTML. Please try again.')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+
+  // Download as PDF (direct approach using print dialog)
+  const handleDownloadPDF = async () => {
+    if (!resumePreviewRef.current) return
+    
+    try {
+      setIsDownloading(true)
+      
+      // Use print dialog which is more reliable
+      handlePrintPDF()
+      
+      // Show user instruction
+      setTimeout(() => {
+        alert('Please use "Save as PDF" option in the print dialog to save your resume as PDF.')
+      }, 100)
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      alert('Failed to open print dialog. Please try again.')
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // Handle save (placeholder)
+  const handleSave = () => {
+    console.log('Save resume clicked')
+    console.log('Resume data:', resumeData)
+    console.log('Section order:', sectionOrder)
+    console.log('Selected template:', selectedTemplate)
+    console.log('Selected font:', selectedFont)
+    console.log('Selected theme:', selectedTheme)
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -141,19 +400,77 @@ const CreateResumePage = () => {
                 width: '117.65%', // Compensate for scale (100 / 0.85)
               }}
             >
-              <ResumePreview 
-                data={resumeData} 
-                order={sectionOrder}
-                fontFamily={selectedFontFamily}
-                color={selectedThemeData.textColor}
-                templateStyle={selectedTemplateStyle}
-              />
+              <div ref={resumePreviewRef}>
+                <ResumePreview 
+                  data={resumeData} 
+                  order={sectionOrder}
+                  fontFamily={selectedFontFamily}
+                  color={selectedThemeData.textColor}
+                  templateStyle={selectedTemplateStyle}
+                />
+              </div>
             </div>
           </div>
 
           {/* Right Side - Customization Panel */}
           <div className="h-full overflow-y-auto">
             <div className="bg-card border border-border rounded-lg shadow-lg p-6">
+              {/* Action Buttons */}
+              <div className="mb-6 pb-6 border-b border-border">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <Button
+                      onClick={handlePrintPDF}
+                      disabled={isDownloading}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Opening...
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="mr-2 h-4 w-4" />
+                          Print / Save as PDF
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                    <Button
+                      onClick={handleDownloadHTML}
+                      disabled={isDownloading}
+                      variant="outline"
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download HTML
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleSave}
+                  variant="secondary"
+                  className="w-full mt-3"
+                  size="lg"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Resume
+                </Button>
+              </div>
+              
               {/* All customization options visible */}
               <div className="space-y-8">
                 {/* Styles Section */}
